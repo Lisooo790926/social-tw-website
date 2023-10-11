@@ -1,42 +1,34 @@
-name: Deploy
+name: CD-Main
 run-name: ${{ github.actor }} acitvates the actions 🚀
 
 on:
-    push:
-        branches:
-            - stage
+    workflow_dispatch:
+        branches: ['feat_system_cicd_enhancment']
+        inputs:
+            build-services:
+                description: 'build which services'
+                required: true
+                default: 'relay-frontend'
+                type: choice
+                options:
+                    - relay-frontend
+                    - contract
+            version:
+                description: 'current deploy version'
+                required: true
+                default: '0.0.1'
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out repository code
-              uses: actions/checkout@v3
+    build:
+        uses: ./.github/workflows/build-all.yml
+        with:
+            build-services: ${{ inputs.build-services }}
+            version: ${{ inputs.version }}
+        secrets:
+            GH_PAT: ${{ secrets.GH_PAT }}
 
-            - name: Install node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: '18'
-
-            - name: Install dependencies
-              run: yarn
-
-            - name: Install Tenderly CLI
-              run: curl https://raw.githubusercontent.com/Tenderly/tenderly-cli/master/scripts/install-linux.sh | sudo sh
-
-            - name: Deploy contracts
-              run: yarn contracts deploy:devnet
-              env:
-                  TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
-                  TENDERLY_PROJECT_SLUG: ${{ secrets.TENDERLY_PROJECT_SLUG }}
-                  TENDERLY_DEVNET_TEMPLATE: ${{ secrets.TENDERLY_DEVNET_TEMPLATE }}
-                  TENDERLY_ACCOUNT_ID: ${{ secrets.TENDERLY_ACCOUNT_ID }}
-
-            - name: Export Config to GitHub Envs
-              run: gh variables -f /packages/relay/.env --repo $GITHUB_REPOSITORY
-              env:
-                  GH_TOKEN: ${{ secrets.GH_PAT }}
     backend:
+        needs: build
         permissions:
             contents: 'read'
             id-token: 'write'
@@ -64,11 +56,6 @@ jobs:
                   username: oauth2accesstoken
                   password: ${{ steps.auth.outputs.access_token }}
 
-            - name: Build and Push Container
-              run: |-
-                  docker build -t "${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.BACKEND_SERVICE }}:${{ github.sha }}" ./
-                  docker push "${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.BACKEND_SERVICE }}:${{ github.sha }}"
-
             - name: Deploy to Cloud Run
               id: deploy
               uses: google-github-actions/deploy-cloudrun@v0
@@ -90,6 +77,7 @@ jobs:
             - name: Show Output
               run: echo ${{ steps.deploy.outputs.url }}
     frontend:
+        needs: build
         permissions:
             contents: 'read'
             id-token: 'write'
@@ -117,11 +105,6 @@ jobs:
                   username: oauth2accesstoken
                   password: ${{ steps.auth.outputs.access_token }}
 
-            - name: Build and Push Container
-              run: |-
-                  docker build -t "${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ github.sha }}" -f ./packages/frontend/Dockerfile .
-                  docker push "${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ github.sha }}"
-
             - name: Deploy to Cloud Run
               id: deploy
               uses: google-github-actions/deploy-cloudrun@v0
@@ -132,7 +115,7 @@ jobs:
                   ## set --max-old-space-size=8192 for node.js to increase memory limit
                   env_vars: |
                       ENV=${{ vars.ENV }}
-                      STAGE_SERVER=${{ vars.${{ vars.ENV }}_SERVER }}
+                      STAGE_SERVER=${{ vars.ENV }}_SERVER
                       NODE_OPTIONS=${{ vars.NODE_OPTIONS }}
 
             - name: Allow public access
