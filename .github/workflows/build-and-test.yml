@@ -16,7 +16,7 @@ jobs:
         name: Build and Test
         runs-on: ubuntu-22.04
         container:
-            image: ghcr.io/lisooo790926/circom_node_env:0.0.1
+            image: ghcr.io/social-tw/circom_node_env:0.0.1
             credentials:
                 username: ${{ github.actor }}
                 password: ${{ secrets.CR_PAT }}
