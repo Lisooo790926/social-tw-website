@@ -82,6 +82,11 @@ jobs:
                   docker build -t ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }} -f ./packages/frontend/Dockerfile .
                   docker push ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }}
 
+            - name: add tag to record version
+              run: |
+                  git tag v${{ steps.version.outputs.major }}
+                  git push origin refs/tags/v${{ steps.version.outputs.major }} -f
+
     build-relay-frontend:
         if: ${{ inputs.build-services == 'relay-frontend'}}
         runs-on: ubuntu-22.04
@@ -135,3 +140,8 @@ jobs:
               run: |
                   docker build -t ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }} -f ./packages/frontend/Dockerfile .
                   docker push ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }}
+
+            - name: add tag to record version
+              run: |
+                  git tag v${{ steps.version.outputs.major }}
+                  git push origin refs/tags/v${{ steps.version.outputs.major }} -f
