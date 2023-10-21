@@ -9,6 +9,12 @@ on:
             version:
                 default: '0.0.1'
                 type: string
+
+permissions:
+    contents: 'read'
+    id-token: 'write'
+    actions: 'write'
+
 jobs:
     build-all:
         if: ${{ inputs.build-services == 'contract' }}
@@ -99,6 +105,19 @@ jobs:
             - name: Check out repository code
               uses: actions/checkout@v3
 
+            - name: add tag to record version
+              uses: actions/github-script@v5
+              with:
+                script: |
+                  github.rest.git.createRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: 'refs/tags/test124',
+                    sha: context.sha
+                  })
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
             - name: Setup circom, related lib
               run: |
                   apt-get update && apt-get install -y build-essential curl
@@ -141,7 +160,15 @@ jobs:
                   docker build -t ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }} -f ./packages/frontend/Dockerfile .
                   docker push ${{ vars.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REPOSITORY }}/${{ vars.FRONTEND_SERVICE }}:${{ inputs.version }}
 
-            # - name: add tag to record version
-            #   run: |
-            #       git tag v${{ inputs.version }}
-            #       git push origin refs/tags/v${{ inputs.version }} -f
+            - name: Create tag
+              uses: actions/github-script@v5
+              with:
+                script: |
+                  github.rest.git.createRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: 'refs/tags/test124',
+                    sha: context.sha
+                  })
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GH_PAT }}

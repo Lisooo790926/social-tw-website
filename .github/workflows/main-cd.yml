@@ -18,11 +18,13 @@ on:
                 required: true
                 default: '0.0.1'
 
+permissions:
+    contents: 'read'
+    id-token: 'write'
+    actions: 'write'
+
 jobs:
     build:
-        permissions:
-            contents: 'read'
-            id-token: 'write'
         uses: ./.github/workflows/build-all.yml
         with:
             build-services: ${{ inputs.build-services }}
@@ -31,9 +33,6 @@ jobs:
 
     relay:
         needs: build
-        permissions:
-            contents: 'read'
-            id-token: 'write'
         uses: ./.github/workflows/deploy-relay.yml
         with:
             version: ${{ inputs.version }}
@@ -41,9 +40,6 @@ jobs:
 
     frontend:
         needs: build
-        permissions:
-            contents: 'read'
-            id-token: 'write'
         uses: ./.github/workflows/deploy-frontend.yml
         with:
             version: ${{ inputs.version }}
